@@ -1,0 +1,45 @@
+# ============================================================
+# Tech4 — Git Ignore
+# ============================================================
+
+# Credenciais e segredos
+.env
+.env.*
+*.env
+
+# Credenciais AWS
+.aws/
+credentials
+*.pem
+*.key
+secrets*
+secrets/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+
+# Jupyter / Databricks
+.ipynb_checkpoints/
+*.ipynb_metadata/
+.databricks/
+
+# Logs e dados locais
+logs/
+*.log
+data/raw/
+tmp/
+.cache/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
