@@ -1,0 +1,48 @@
+# Caminho ALTERNATIVO ao Ollama portátil: Ollama + modelo em container.
+# O app Python continua no venv (scripts/setup.* --skip-ollama) e acessa
+# http://127.0.0.1:11434 (padrão do OLLAMA_BASE_URL).
+#
+#   docker compose up -d          # sobe o Ollama e baixa o modelo (~18 GB na 1ª vez)
+#   docker compose logs -f ollama-pull
+#   docker compose down           # para (os modelos ficam no volume)
+#
+# GPU NVIDIA: Linux precisa do nvidia-container-toolkit; Windows precisa do
+# Docker Desktop com backend WSL2 e driver NVIDIA atualizado. Sem GPU, remova
+# o bloco "deploy" (roda em CPU, mais lento).
+
+services:
+  ollama:
+    image: ollama/ollama:0.40.15
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+    environment:
+      - OLLAMA_FLASH_ATTENTION=1
+      - OLLAMA_KV_CACHE_TYPE=q8_0
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+  ollama-pull:
+    image: ollama/ollama:0.40.15
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      - OLLAMA_HOST=ollama:11434
+    entrypoint: ["ollama", "pull", "${OLLAMA_MODEL:-qwen3.8}"]
+    restart: "no"
+
+volumes:
+  ollama_models:

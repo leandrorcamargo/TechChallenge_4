@@ -2,12 +2,12 @@
 Cria os embeddings das reviews e salva no vector store (ChromaDB).
 
 Executar (a partir da raiz do repositorio):
-    python rag/build_vector_store.py
+    python retrieval/build_vector_store.py
 
 Etapas:
   1. Carrega a Gold (load_gold.py) e junta os metadados das outras 3 tabelas.
   2. Gera 1 embedding por review a partir do document_text.
-  3. Grava vetor + texto + metadados no ChromaDB (pasta rag/vector_store/).
+  3. Grava vetor + texto + metadados no ChromaDB (pasta retrieval/vector_store/).
 """
 
 import time

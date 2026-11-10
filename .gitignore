@@ -6,6 +6,7 @@
 .env
 .env.*
 *.env
+!.env.example
 
 # Credenciais AWS
 .aws/
@@ -43,3 +44,17 @@ tmp/
 Thumbs.db
 .idea/
 .vscode/
+# Ferramentas locais isoladas (uv, Python, Ollama portátil, modelos, cache HF)
+.tools/
+
+# Cache local da Gold (corpus do RAG)
+.cache/
+
+# Banco vetorial gerado localmente (python retrieval/build_vector_store.py)
+retrieval/vector_store/
+
+# Resultados de avaliação gerados localmente
+eval/results/*.json
+
+# Cache do pytest
+.pytest_cache/
