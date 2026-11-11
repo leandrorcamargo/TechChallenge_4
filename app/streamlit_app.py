@@ -19,7 +19,9 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+_ROOT = (Path(__file__).resolve().parent.parent if "__file__" in globals()
+            else Path("/Workspace/Users/fvieirasanches@gmail.com/TechChallenge_4"))
+sys.path.insert(0, str(_ROOT))
 
 from rag.config import get_settings  # noqa: E402
 from rag.schemas import Filters, RagResult  # noqa: E402
@@ -175,7 +177,17 @@ def main() -> None:
                     result = pipeline.run(question, overrides=overrides)
             except Exception as e:  # noqa: BLE001
                 st.error(f"Erro ao executar o pipeline: {type(e).__name__}: {e}")
-                st.caption("Verifique o ambiente com `python -m rag.tools.check_env`.")
+                if "are available" in str(e) and "GiB" in str(e):
+                    st.caption(
+                        "O Ollama não tem memória suficiente para carregar este modelo. "
+                        "Opções: (1) `ollama ps` + `ollama stop <modelo>` para descarregar modelos "
+                        "e fechar apps pesados; (2) trocar para um modelo menor adicionando "
+                        "`OLLAMA_MODEL=qwen3:4b` no `.env` da raiz (após `ollama pull qwen3:4b`); "
+                        "(3) reduzir o contexto com `LLM_NUM_CTX=4096` no `.env`. "
+                        "Reinicie o app após mudar o `.env`."
+                    )
+                else:
+                    st.caption("Verifique o ambiente com `python -m rag.tools.check_env`.")
                 return
             render_result(result)
         history.append(result)
