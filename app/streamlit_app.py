@@ -183,8 +183,6 @@ def main() -> None:
                         "Opções: (1) `ollama ps` + `ollama stop <modelo>` para descarregar modelos "
                         "e fechar apps pesados; (2) trocar para um modelo menor adicionando "
                         "`OLLAMA_MODEL=qwen3:4b` no `.env` da raiz (após `ollama pull qwen3:4b`); "
-                        "(3) reduzir o contexto com `LLM_NUM_CTX=4096` no `.env`. "
-                        "Reinicie o app após mudar o `.env`."
                     )
                 else:
                     st.caption("Verifique o ambiente com `python -m rag.tools.check_env`.")
