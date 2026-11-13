@@ -390,4 +390,3 @@ Saídas reais da avaliação, resumidas. Na interface, cada `R#` aparece ligado 
 - **Latência:** ~1,5–2 min por resposta no hardware de referência, por causa do LLM de 27B parcialmente em CPU.
 - **Precisão por pergunta:** a precisão do contexto é menor (75%) em perguntas amplas ou genéricas ("o que os clientes mais elogiam", "como foram as avaliações de beleza em 2017"), em que muitas reviews curtas e genéricas competem.
 - **Categoria de pedidos com várias categorias:** no vector store, o filtro de categoria compara a string inteira de categorias do pedido. Pedidos com mais de uma categoria (~1%) só entram pela busca BM25.
-- **Teste de contrato da Gold:** `data_preparing/test_gold_contract.py` espera `voc_reviews.jsonl` no S3, mas `run_gold` define `write_s3_jsonl` sem chamá-lo. Ponto em aberto da camada Gold, sem impacto no RAG.

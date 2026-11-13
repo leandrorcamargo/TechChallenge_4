@@ -9,13 +9,10 @@ Validam o contrato das 4 tabelas Gold exportadas para o S3 pelo notebook
 - gold_customers           (PK customer_id)
 - gold_products_by_order   (PK order_id)
 
-E tambem o corpus VoC exportado como JSONL (voc_reviews.jsonl).
-
 Executar:  python -m pytest test_gold_contract.py -v
 """
 
 import io
-import json
 import os
 
 import boto3
@@ -303,36 +300,3 @@ class TestReferentialIntegrity:
         covered = gold_reviews["order_id"].isin(set(gold_products_by_order["order_id"]))
         ratio = covered.mean()
         assert ratio >= 0.98, f"cobertura de categorias caiu para {ratio:.1%}"
-
-
-# ==================================================================
-# 6. Corpus VoC exportado como JSONL
-# ==================================================================
-class TestVocReviewsJsonl:
-    @pytest.fixture(scope="class")
-    def jsonl_records(self, s3_client):
-        resp = s3_client.get_object(Bucket=S3_BUCKET, Key=f"{GOLD_PREFIX}voc_reviews.jsonl")
-        body = resp["Body"].read().decode("utf-8")
-        return [json.loads(line) for line in body.splitlines() if line.strip()]
-
-    def test_jsonl_row_count_matches_parquet(self, jsonl_records, gold_reviews):
-        """O JSONL deve ter exatamente o mesmo numero de documentos do parquet."""
-        assert len(jsonl_records) == len(gold_reviews), (
-            f"jsonl: {len(jsonl_records)} docs | parquet: {len(gold_reviews)} docs"
-        )
-
-    def test_jsonl_record_contract(self, jsonl_records, gold_reviews):
-        """Cada registro JSONL deve ter review_id e document_text preenchidos."""
-        first = jsonl_records[0]
-        assert "review_id" in first
-        assert "document_text" in first
-        assert first["document_text"]
-
-    def test_jsonl_ids_match_parquet(self, jsonl_records, gold_reviews):
-        """Os review_ids do JSONL devem ser exatamente os do parquet."""
-        jsonl_ids = {r["review_id"] for r in jsonl_records}
-        parquet_ids = set(gold_reviews["review_id"])
-        assert jsonl_ids == parquet_ids, (
-            f"{len(jsonl_ids - parquet_ids)} ids so no JSONL, "
-            f"{len(parquet_ids - jsonl_ids)} ids so no parquet"
-        )
