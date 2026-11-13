@@ -1,7 +1,7 @@
-"""Estruturas de dados do pipeline.
+"""Modelos e objetos que circulam entre as etapas.
 
-- Modelos Pydantic: contratos de saída do LLM (validados via structured output).
-- Dataclasses: objetos internos que circulam entre as etapas.
+Os Pydantic são os contratos de saída do LLM (o structured output valida
+contra eles). Os dataclasses são os objetos internos do pipeline.
 """
 
 from __future__ import annotations

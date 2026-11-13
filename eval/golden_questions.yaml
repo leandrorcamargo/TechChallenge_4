@@ -1,11 +1,11 @@
-# Golden set de avaliação do RAG.
+# Golden set pra avaliação do RAG.
 #
-# expected: "answer"  -> deve responder com evidências
-#           "abstain" -> deve recusar (fora do escopo OU evidência insuficiente)
-# expected_filters: subconjunto de filtros que a análise da pergunta deve extrair
-# relevant_terms:   termos (sem acento, minúsculos) dos quais pelo menos um deve
-#                   aparecer numa review selecionada para ela contar como relevante
-#                   (proxy lexical barato de precisão do contexto)
+# expected: "answer" = tem que responder com evidências | "abstain" = tem que recusar
+# expected_filters: filtros que a análise da pergunta deveria extrair
+# relevant_terms: termos (sem acento, minúsculos) dos quais pelo menos um deve
+#   aparecer numa review selecionada pra ela valer como relevante. É um proxy
+#   lexical barato de precisão do contexto — não substitui julgamento humano,
+#   mas escala.
 
 questions:
   # ---------------- Perguntas do enunciado (PDF p.3 e p.6) ----------------

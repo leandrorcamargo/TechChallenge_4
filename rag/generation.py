@@ -1,8 +1,8 @@
-"""Etapa 5 — Geração da resposta com o LLM (Ollama / qwen3.8).
+"""Etapa 5: geração da resposta (Ollama / qwen3.8).
 
-Saída estruturada (VocAnswer, Pydantic) via JSON schema do Ollama: resposta,
-insights com citações [R#], nível de confiança e a auto-declaração de
-evidência suficiente.
+A saída é estruturada (VocAnswer) usando o JSON schema do Ollama: resposta,
+insights com citações [R#], nível de confiança e se a evidência foi
+suficiente (o próprio modelo pode declarar que não foi).
 """
 
 from __future__ import annotations

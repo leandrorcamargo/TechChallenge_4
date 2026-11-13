@@ -1,13 +1,14 @@
-"""Etapa 3 — Seleção dos conteúdos mais relevantes.
+"""Etapa 3: seleção do que vai pro contexto.
 
-1. Re-ranking com cross-encoder multilíngue: avalia o par (pergunta, review) em
-   conjunto — bem mais preciso que a similaridade de vetores do 1º estágio.
-2. Limiar de relevância (RERANK_THRESHOLD): descarta reviews "próximas mas irrelevantes".
-3. Deduplicação de textos idênticos após normalização (ex.: dezenas de "ótimo produto").
-4. Top-N para o contexto.
+Primeiro o cross-encoder multilíngue re-ranqueia os candidatos: ele lê
+pergunta e review juntas, então é bem mais preciso que a similaridade de
+vetores do 1º estágio. Depois aplicamos o limiar de relevância
+(RERANK_THRESHOLD, calibrado no run_eval), a deduplicação de textos
+idênticos depois de normalizados (tem MUITO "ótimo produto" repetido na
+base) e o top-N.
 
-Se sobrarem menos que MIN_EVIDENCE reviews, a pergunta é tratada como
-"evidência insuficiente" (requisito 4 do desafio).
+Se sobrar menos que MIN_EVIDENCE reviews, a pergunta vira "evidência
+insuficiente" (requisito 4 do desafio).
 """
 
 from __future__ import annotations
@@ -48,10 +49,11 @@ def rerank(query: str, candidates: list[Candidate], scorer=None) -> list[Candida
 def select(
     candidates: list[Candidate], threshold: float | None = None, top_n: int | None = None
 ) -> tuple[list[Candidate], list[Candidate], dict]:
-    """Aplica limiar + dedupe + top-N.
+    """Aplica limiar, dedupe e top-N.
 
-    Retorna (selecionados, relevantes_acima_do_limiar, dados_trace). Os
-    "relevantes" (todos acima do limiar, sem corte top-N) alimentam as estatísticas.
+    Devolve (selecionados, relevantes_acima_do_limiar, trace). Os
+    "relevantes" são todos os que passaram do limiar, sem o corte de top-N:
+    são eles que alimentam as estatísticas do contexto.
     """
     s = get_settings()
     threshold = s.rerank_threshold if threshold is None else threshold

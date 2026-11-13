@@ -1,10 +1,13 @@
-"""Etapa 4 — Construção do contexto enviado ao LLM.
+"""Etapa 4: montagem do contexto que vai pro LLM.
 
-- Cada review selecionada recebe um ID curto (R1..Rn) mapeado para o review_id
-  real: menos tokens e menos erros de citação, mantendo rastreabilidade total.
-- Metadados relevantes vão como atributos XML (nota, categoria, data, UF, atraso).
-- Bloco <estatisticas> calculado em pandas: top-k não mede frequência, então o
-  LLM recebe contagens reais em vez de inventá-las.
+Cada review selecionada ganha um id curto (R1..Rn) que a gente mapeia pro
+review_id real: gasta menos token, o LLM erra menos a citação e a
+rastreabilidade continua lá (o mapa fica no trace).
+
+Os metadados relevantes entram como atributos XML (nota, categoria, data,
+UF, atraso) e, no fim, um bloco <estatisticas> calculado em pandas. Esse
+bloco existe porque top-k não diz nada sobre frequência: sem ele o LLM
+tende a inventar os números.
 """
 
 from __future__ import annotations

@@ -1,8 +1,8 @@
-"""Configuração central do RAG, lida do .env na raiz do projeto.
+"""Config do RAG, lida do .env na raiz do projeto.
 
-Todos os caminhos locais (Ollama portátil, modelos, cache HuggingFace, cache da
-Gold, índice dev) ficam dentro do projeto em `.tools/` e `.cache/`, ambos fora
-do git — o ambiente é isolado como um venv.
+Tudo que o projeto baixa ou gera (Ollama portátil, modelos, caches) fica
+dentro de .tools/ e .cache/, que estão no .gitignore. Assim não suja a
+máquina de ninguém: pra "desinstalar" é só apagar as duas pastas.
 """
 
 from __future__ import annotations
@@ -19,12 +19,13 @@ CACHE_DIR = PROJECT_ROOT / ".cache"
 
 load_dotenv(PROJECT_ROOT / ".env")
 
-# Cache dos modelos HuggingFace dentro do projeto (isolamento).
+# cache do HF dentro do projeto, senão espalha arquivo no home do usuário
 os.environ.setdefault("HF_HOME", str(TOOLS_DIR / "hf"))
-# Telemetria desligada.
+# telemetria desligada
 os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
 os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
-# Windows sem modo desenvolvedor não cria symlinks; o cache funciona igual (só avisa).
+# no Windows sem modo desenvolvedor o HF não consegue criar symlink;
+# funciona igual, só solta um aviso chato
 os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
 
 

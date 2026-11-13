@@ -1,4 +1,5 @@
-"""Testes unitários das peças do pipeline (filtros, BM25, RRF, seleção, contexto, guardrails)."""
+"""Testes unitários das peças do pipeline: filtros, BM25, RRF, seleção,
+contexto, guardrails e a tradução dos filtros pro where do Chroma."""
 
 from rag import guardrails
 from rag.context_builder import build_evidences, build_stats, format_reviews
@@ -75,7 +76,7 @@ def test_select_threshold_dedupe_topn():
     cands = [_cand("a", "Ótimo produto", 5.0), _cand("b", "ótimo produto!", 4.0),
              _cand("c", "Chegou rápido", 3.0), _cand("d", "irrelevante", -2.0)]
     selected, relevant, trace = select(cands, threshold=0.0, top_n=10)
-    assert [c.review_id for c in selected] == ["a", "c"]  # 'b' é duplicata de 'a'; 'd' abaixo do limiar
+    assert [c.review_id for c in selected] == ["a", "c"]  # 'b' é duplicata de 'a', 'd' ficou abaixo do limiar
     assert len(relevant) == 3 and trace["apos_dedupe"] == 2
 
 
@@ -122,7 +123,7 @@ def test_explicit_year_and_uf_complement_llm(vocab):
 
     f, notes = apply_explicit_mentions("Como foram as avaliações de beleza em 2017 no RJ?", Filters(), vocab)
     assert f.year == 2017 and f.state == "RJ" and len(notes) == 2
-    # Não sobrescreve o LLM, nem chuta com menções ambíguas/fora da base.
+    # não sobrescreve o LLM, nem chuta com menções ambíguas/fora da base
     f, _ = apply_explicit_mentions("Compare 2017 e 2018", Filters(), vocab)
     assert f.year is None
     f, _ = apply_explicit_mentions("vendas em 2020", Filters(), vocab)

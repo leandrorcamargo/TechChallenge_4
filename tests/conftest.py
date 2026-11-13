@@ -1,5 +1,6 @@
-"""Fixtures: corpus mínimo em memória + dublês de LLM, busca densa e reranker.
-Os testes não precisam de Ollama, S3, índice vetorial nem download de modelos."""
+"""Fixtures: um corpus mínimo em memória e dublês de LLM, busca densa e
+reranker. Assim o pytest roda em qualquer máquina, sem Ollama, sem S3,
+sem índice vetorial e sem baixar modelo nenhum."""
 
 import pandas as pd
 import pytest
@@ -46,7 +47,8 @@ def vocab() -> Vocabulary:
 
 @pytest.fixture
 def patched(monkeypatch, corpus, vocab):
-    """Substitui vocabulário e índice BM25 globais pelos do corpus de teste."""
+    """Troca o vocabulário e o índice BM25 globais pelos do corpus de teste,
+    senão os testes dependeriam da base real de 42k reviews."""
     import rag.query_processing as qp
     import rag.retrieval as rt
 

@@ -1,16 +1,16 @@
-"""Acesso à camada Gold e montagem do corpus enriquecido para o RAG.
+"""Acesso à camada Gold e montagem do corpus do RAG.
 
-Fonte da Gold (GOLD_SOURCE no .env):
-  - "local" (padrão): gera a Gold a partir dos parquets Bronze do repositório,
-    executando o código original de data_preparing/ via `retrieval/load_gold.py`
-    (etapa de Embeddings). Não precisa de credenciais AWS. É a mesma Gold do S3:
-    as 4 tabelas foram comparadas e são idênticas.
-  - "s3": baixa as 4 tabelas Gold do bucket (precisa das credenciais no .env).
+De onde a Gold vem (GOLD_SOURCE no .env):
+  - "local" (padrão): roda o código original de data_preparing/ aqui mesmo,
+    via retrieval/load_gold.py, a partir dos parquets Bronze do repo. Não
+    precisa de credencial AWS — e já comparamos: as 4 tabelas são idênticas
+    às do S3.
+  - "s3": baixa os 4 parquets do bucket (aí sim precisa das credenciais).
 
-O corpus (`.cache/gold/voc_corpus.parquet`) é 1 linha por review com texto, já
-com os metadados de pedido, cliente e produto (joins pelas FKs da Gold). Ele
-alimenta o índice BM25, a validação de filtros e as estatísticas do contexto.
-Os IDs são os mesmos do vector store (id = review_id).
+O corpus (.cache/gold/voc_corpus.parquet) é 1 linha por review com texto,
+já com os metadados de pedido, cliente e produto (joins pelas FKs da Gold).
+Ele alimenta o índice BM25, a validação de filtros e as estatísticas do
+contexto. Os IDs são os mesmos do vector store (id = review_id).
 
     python -m rag.data_access          # gera o corpus (se ainda não existir)
     python -m rag.data_access --force  # regera
@@ -81,7 +81,7 @@ def build_corpus(gold: dict[str, pd.DataFrame]) -> pd.DataFrame:
         .merge(gold["gold_products_by_order"][["order_id", "product_categories_pt"]], on="order_id", how="left")
     )
     df["product_categories_pt"] = df["product_categories_pt"].fillna(NO_CATEGORY)
-    # Categoria principal (1ª da lista; ~99% dos pedidos têm uma só) — usada para exibição e estatísticas.
+    # a 1ª da lista vira a categoria "principal" (quase todo pedido tem uma só)
     df["product_category_main"] = df["product_categories_pt"].str.split(", ").str[0]
     df["is_late_delivery"] = df["is_late_delivery"].fillna(False).astype(bool)
     df["review_creation_date"] = pd.to_datetime(df["review_creation_date"]).dt.strftime("%Y-%m-%d")

@@ -1,19 +1,19 @@
 """Avaliação do RAG sobre o golden set (eval/golden_questions.yaml).
 
-Modos:
-    python eval/run_eval.py --calibrate     # calibra RERANK_THRESHOLD (etapas 1-3, sem geração)
+    python eval/run_eval.py --calibrate     # calibra o RERANK_THRESHOLD (etapas 1-3, sem geração)
     python eval/run_eval.py                 # avaliação completa (pipeline inteiro)
     python eval/run_eval.py --judge         # + LLM-as-judge (fidelidade dos insights)
     python eval/run_eval.py --only pdf-01,oos-01
 
-Métricas (avaliação completa):
-  - acurácia de abstenção: responde quando deve e recusa quando deve (requisito 4);
-  - acurácia da extração de filtros de metadados;
-  - precisão@N lexical do contexto (proxy: review selecionada contém termo do tema);
-  - taxa de citações válidas geradas pelo LLM (antes da pós-validação);
-  - fidelidade (--judge): % de insights sustentados pelas reviews citadas;
-  - latência por etapa.
-Saída: eval/results/report.md (+ JSON com os detalhes).
+Mede: acurácia de abstenção (responde quando deve, recusa quando deve —
+requisito 4), extração de filtros de metadados, precisão@N lexical do
+contexto (proxy: a review selecionada contém termo do tema), taxa de
+citações válidas já na saída do LLM e, com --judge, a fidelidade dos
+insights. Também mede a latência de cada etapa.
+
+Escreve o relatório em eval/results/report.md e um details.json com a
+resposta completa de cada pergunta — quando algo sai errado, é nele que
+a gente acha o motivo.
 """
 
 from __future__ import annotations
@@ -58,8 +58,8 @@ def load_questions(only: str | None) -> list[dict]:
 # Calibração do limiar de relevância
 # ----------------------------------------------------------------------
 def calibrate(pipe: VocRagPipeline, questions: list[dict]) -> None:
-    """Para cada pergunta no escopo, mede o score do k-ésimo melhor candidato
-    (k = MIN_EVIDENCE). Um bom limiar separa 'answer' de 'sem_evidencia'."""
+    """Pra cada pergunta no escopo, mede o score do k-ésimo melhor candidato
+    (k = MIN_EVIDENCE). Um limiar bom é um que separa 'answer' de 'sem_evidencia'."""
     from rag import reranking
 
     k = pipe.settings.min_evidence

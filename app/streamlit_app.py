@@ -1,13 +1,13 @@
-"""Interface de demonstração — Voice of Customer Intelligence com RAG.
+"""Interface de demonstração do VoC (Streamlit).
 
     streamlit run app/streamlit_app.py
 
-- Chat com respostas fundamentadas e citações [R#].
-- Painel de evidências: as avaliações usadas, com review_id e metadados.
-- Inspetor do pipeline: o que aconteceu em cada etapa (pergunta transformada,
-  filtros, candidatos de cada busca, rerank e limiar, prompt exato enviado ao
-  LLM, resposta bruta, validação de citações e latência).
-- Filtros manuais de metadados (sobrescrevem os extraídos da pergunta).
+O chat responde com citações [R#]. Daí dá pra expandir: as evidências com
+review_id e metadados, um inspetor com o que aconteceu em cada etapa do
+pipeline (pergunta transformada, filtros, candidatos, rerank, prompt exato
+enviado ao LLM, resposta bruta, validação das citações) e a latência. Na
+sidebar dá pra fixar filtros manuais, que sobrescrevem os extraídos da
+pergunta.
 """
 
 from __future__ import annotations

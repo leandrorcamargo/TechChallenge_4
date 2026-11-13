@@ -1,4 +1,5 @@
-"""Testes end-to-end do pipeline LCEL com dublês (sem Ollama / índice / modelos HF)."""
+"""Testes de ponta a ponta do pipeline, tudo com dublês (nada de Ollama,
+índice vetorial ou modelo da HuggingFace)."""
 
 import pytest
 from langchain_core.runnables import RunnableLambda
@@ -27,7 +28,7 @@ def fake_dense(query, k, filters, corpus):
 
 
 def keyword_scorer(pairs):
-    """Reranker falso: relevante se a review fala de entrega/chegada."""
+    """Reranker de mentira: relevante se a review fala de entrega/chegada."""
     terms = ("chegou", "entrega", "recebi", "atras")
     return [3.0 if any(t in text.lower() for t in terms) else -50.0 for _, text in pairs]
 
@@ -73,7 +74,8 @@ def test_out_of_scope(make):
 
 
 def test_insufficient_evidence_skips_generation(make):
-    # Filtro que deixa só reviews positivas, que o reranker considera irrelevantes p/ entrega.
+    # filtro que deixa só as reviews neutras, que o reranker de mentira julga
+    # irrelevantes pra entrega — tem que virar evidência insuficiente
     result = make(analyzer_chain=analyzer(filters=Filters(sentiment="neutral"))).run("problemas de entrega?")
     assert result.status == "insufficient_evidence"
     assert not any(t.step.startswith("5.") for t in result.trace)

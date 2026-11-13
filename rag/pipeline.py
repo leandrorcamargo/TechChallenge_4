@@ -11,8 +11,9 @@
       -> 6. validação de citações                          --sem citação válida--> recusa
       -> RagResult (resposta + insights + evidências + trace de cada etapa)
 
-Cada etapa é um RunnableLambda que recebe/devolve o estado (dict) e registra
-tempo e dados no trace — é o que a interface mostra no "Inspetor do pipeline".
+Cada etapa é um RunnableLambda que recebe e devolve o estado (dict) e vai
+registrando tempo e dados no trace — é esse trace que a interface mostra
+no "Inspetor do pipeline" (e que salvou a vida na hora de debugar).
 
 CLI:
     python -m rag.pipeline "Quais reclamações relacionadas à entrega aparecem com maior frequência?"
@@ -54,7 +55,8 @@ def _step(name: str, fn: Callable[[State], dict]) -> RunnableLambda:
 
 
 class VocRagPipeline:
-    """Monta a chain. Dependências injetáveis para testes (LLMs falsos, busca falsa)."""
+    """Monta a chain. As dependências entram por parâmetro porque os testes
+    passam versões falsas (LLM falso, busca falsa, reranker falso)."""
 
     def __init__(self, corpus: pd.DataFrame | None = None, analyzer_chain=None, generation_chain=None,
                  dense_fn=None, rerank_scorer=None):
@@ -70,7 +72,7 @@ class VocRagPipeline:
         self.rerank_scorer = rerank_scorer
         self.chain = self._build()
 
-    # ---- dependências preguiçosas (só carregam o LLM quando necessário) ----
+    # ---- preguiçoso de propósito: o LLM só carrega se for usado ----
     @property
     def analyzer_chain(self):
         if self._analyzer_chain is None:
@@ -101,7 +103,8 @@ class VocRagPipeline:
         return {"candidates": candidates}, trace
 
     def _select(self, s: State):
-        # O cross-encoder compara com a pergunta reformulada (autocontida, sem ruído de conversa).
+        # comparamos com a pergunta reformulada, que é autocontida (sem ruído
+        # de conversa), não com a pergunta crua do usuário
         ranked = reranking.rerank(s["analysis"].search_query, s["candidates"], scorer=self.rerank_scorer)
         selected, relevant, trace = reranking.select(ranked)
         trace["min_evidencias"] = self.settings.min_evidence
@@ -145,7 +148,7 @@ class VocRagPipeline:
         return RagResult(s["question"], "out_of_scope", msg, trace=s["trace"])
 
     def _finish_insufficient(self, s: State) -> RagResult:
-        # Mostra o que foi encontrado (transparência), sem tirar conclusões.
+        # mostra o que achou de mais próximo, sem tirar conclusão de nada
         near = context_builder.build_evidences(s["ranked"][:5])
         msg = MSG_INSUFFICIENT.format(n=len(s["selected"]), min_n=self.settings.min_evidence)
         return RagResult(s["question"], "insufficient_evidence", msg, evidences=near, trace=s["trace"])

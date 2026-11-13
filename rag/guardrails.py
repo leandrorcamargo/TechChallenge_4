@@ -1,9 +1,10 @@
 """Guardrails de entrada e de saída.
 
-Entrada: detecção heurística de prompt injection na pergunta (antes de qualquer LLM).
-Saída: validação das citações — toda afirmação precisa citar reviews que estavam
-de fato no contexto; citações inexistentes são removidas e insights sem citação
-válida são descartados.
+Na entrada, uma heurística de regex detecta prompt injection antes de
+chamar qualquer LLM. Na saída, a validação das citações: toda afirmação
+precisa citar reviews que estavam de fato no contexto; citação que não
+existe é removida e insight que fica sem citação válida é descartado —
+o sistema recusa em vez de responder sem base.
 """
 
 from __future__ import annotations
@@ -36,7 +37,7 @@ def detect_injection(question: str) -> bool:
 
 
 def validate_citations(answer: VocAnswer, valid_refs: set[str]) -> tuple[list[dict], dict]:
-    """Normaliza e valida as citações. Retorna (insights válidos, relatório para o trace)."""
+    """Normaliza e valida as citações. Devolve (insights válidos, relatório pro trace)."""
     kept: list[dict] = []
     invalid: list[str] = []
     dropped: list[str] = []

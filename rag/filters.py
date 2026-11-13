@@ -1,6 +1,10 @@
-"""Filtros de metadados: validação contra o vocabulário real e tradução para
-(a) máscara pandas (BM25 e estatísticas) e (b) cláusula `where` do Chroma,
-usando os nomes de metadados gravados pela etapa de Embeddings (retrieval/).
+"""Filtros de metadados.
+
+A ideia: o LLM extrai filtros da pergunta, mas quem decide é o código. Aqui a
+gente valida contra o vocabulário real da base (categoria, UF, ano...) e
+converte pra (a) máscara pandas, usada no BM25 e nas estatísticas, e (b) a
+cláusula `where` do Chroma, com os nomes de metadados que a etapa de
+embeddings gravou (pasta retrieval/).
 """
 
 from __future__ import annotations
@@ -61,7 +65,7 @@ def sanitize(filters: Filters, vocab: Vocabulary) -> tuple[Filters, list[str]]:
             notes.append(f"status '{st}' descartado")
     if f.score_min and f.score_max and f.score_min > f.score_max:
         f.score_min, f.score_max = f.score_max, f.score_min
-    # Sentimento e faixa de nota redundantes/conflitantes: a nota explícita prevalece.
+    # se o sentimento conflita com a faixa de nota, fica com a nota (mais específica)
     if f.sentiment and (f.score_min or f.score_max):
         lo, hi = SCORES_BY_SENTIMENT[f.sentiment]
         if (f.score_min or 1) > hi or (f.score_max or 5) < lo:
@@ -98,8 +102,8 @@ def to_mask(df: pd.DataFrame, f: Filters) -> pd.Series:
     if f.late_delivery is True:
         m &= df["is_late_delivery"].astype(bool)
     elif f.late_delivery is False:
-        # "No prazo" só vale para pedidos entregues — mesma regra do vector store,
-        # que omite o atraso de pedidos sem data de entrega.
+        # "no prazo" só faz sentido pra pedido que foi entregue (mesma regra
+        # do vector store, que não grava atraso de pedido sem data de entrega)
         m &= ~df["is_late_delivery"].astype(bool) & df["delivery_delay_days"].notna()
     if f.order_status:
         m &= df["order_status"] == f.order_status

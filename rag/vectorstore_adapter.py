@@ -1,17 +1,18 @@
-"""Integração com a etapa de Embeddings e Vector Store (pasta `retrieval/`).
+"""Ponte com a etapa de Embeddings (pasta retrieval/).
 
-O vector store é o da parte de Embeddings (retrieval/):
-  - ChromaDB persistente em `retrieval/vector_store/`, coleção `olist_reviews`;
-  - embeddings `intfloat/multilingual-e5-small` com prefixos `query:`/`passage:`;
-  - 1 review = 1 documento, id = review_id, metadados de pedido/cliente/produto.
+O vector store usado é o de lá mesmo: ChromaDB persistente em
+retrieval/vector_store/, coleção olist_reviews, embeddings
+multilingual-e5-small (com os prefixos query:/passage:), 1 documento por
+review, id = review_id e metadados de pedido/cliente/produto.
 
-O RAG consome a função `search()` de `retrieval/search.py` como a busca densa
-do 1º estágio, traduzindo os filtros extraídos da pergunta para a sintaxe
-`where` do Chroma (ver `rag.filters.to_chroma_where`).
+Aqui a gente só importa a função search() de retrieval/search.py e usa
+como busca densa do 1º estágio, traduzindo os filtros extraídos da
+pergunta pro `where` do Chroma (ver rag.filters.to_chroma_where).
 
-Os scripts de `retrieval/` usam imports "planos" (`from config import ...`),
-então a pasta é adicionada ao sys.path antes de importá-los. `rag.config` é
-importado antes para que o cache HuggingFace fique em `.tools/hf` (isolamento).
+Detalhe chato: os scripts de retrieval/ usam imports planos
+(from config import ...), então a pasta entra no sys.path antes de
+importar. O rag.config é importado antes de propósito, pro cache do
+HuggingFace cair em .tools/hf e não fora do projeto.
 """
 
 from __future__ import annotations

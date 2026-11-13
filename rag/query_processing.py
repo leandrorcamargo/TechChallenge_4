@@ -1,15 +1,14 @@
-"""Etapa 1 — Processamento e transformação da pergunta.
+"""Etapa 1: processamento e transformação da pergunta.
 
-O LLM (structured output -> QueryAnalysis) faz, numa única chamada:
-  - classificação de escopo (guardrail de entrada semântico);
-  - classificação de intenção;
-  - reescrita da consulta (search_query), HyDE (hypothetical_review) e
-    expansão lexical (keywords) — uma consulta por estratégia de busca;
-  - extração de filtros de metadados (self-query).
+Numa única chamada o LLM (structured output -> QueryAnalysis) já devolve:
+escopo da pergunta, intenção, a pergunta reescrita pra busca (search_query),
+uma review hipotética (HyDE), palavras-chave e os filtros de metadados
+(self-query).
 
-Em código, os filtros são validados contra o vocabulário real da Gold (o LLM
-não consegue inventar categoria/UF/ano inexistente) e aplicam-se defaults de
-intenção. Se o LLM falhar, cai para uma análise mínima (a pergunta original).
+Em código a gente desconfia do LLM: os filtros são validados contra o
+vocabulário real da Gold (categoria/UF/ano inventado não passa) e a
+intenção aplica defaults. Se a chamada falhar, cai pra uma análise mínima
+com a pergunta original — melhor responder mal do que não responder.
 """
 
 from __future__ import annotations
@@ -57,8 +56,9 @@ _UF_RE = re.compile(r"\b([A-Z]{2})\b")
 
 
 def apply_explicit_mentions(question: str, filters: Filters, vocab) -> tuple[Filters, list[str]]:
-    """Complementa (sem sobrescrever) o LLM com menções inequívocas na pergunta:
-    um único ano da base (ex.: 'em 2017') e uma única sigla de UF em maiúsculas (ex.: 'SP')."""
+    """O LLM às vezes esquece do ano/UF que está escrito na própria pergunta;
+    aqui a gente só completa, sem sobrescrever: um único ano da base e uma
+    única sigla de UF em maiúsculas (duas menções = ambíguo, não mexe)."""
     f = filters.model_copy()
     notes = []
     years = {int(y) for y in _YEAR_RE.findall(question)} & set(vocab.years)

@@ -1,15 +1,16 @@
-"""Prompts versionados do pipeline (tratados como artefatos — GenAI Aula 3).
+"""Prompts do pipeline, versionados (PROMPT_VERSION vai pro trace, pra gente
+saber qual prompt gerou cada resposta — prompts são artefato como qualquer
+outro, ideia discutida na aula 3 de GenAI).
 
-Boas práticas aplicadas:
-- tags XML separando instruções de dados;
-- documentos ANTES e instruções NO FIM do prompt (mitiga "lost in the middle");
-- reviews marcadas como dados não confiáveis (mitiga prompt injection indireta);
-- regras explícitas de grounding, citação e recusa.
+Decisões: tags XML separam instrução de dado; as reviews vêm ANTES e as
+instruções no FIM do prompt (lost in the middle); o texto das reviews é
+marcado como dado não confiável, pra mitigar injection indireta; e as
+regras de grounding, citação e recusa são explícitas.
 """
 
 from langchain_core.prompts import ChatPromptTemplate
 
-PROMPT_VERSION = "v2"  # v2: regra 3a contra inferências não escritas pelos clientes
+PROMPT_VERSION = "v2"  # v2: entrou a regra 3a, contra inferências que o cliente não escreveu
 
 # ----------------------------------------------------------------------
 # Etapa 1 — Análise / transformação da pergunta

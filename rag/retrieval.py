@@ -1,14 +1,13 @@
-"""Etapa 2 — Recuperação híbrida.
+"""Etapa 2: recuperação híbrida.
 
-Três listas ranqueadas, fundidas por Reciprocal Rank Fusion (RRF):
-  - densa  (HyDE):   embedding da `hypothetical_review` (avaliação hipotética)
-  - densa  (query):  embedding da `search_query` reformulada
-  - lexical (BM25):  `keywords` + `search_query` sobre o texto das reviews
+São três buscas: densa com a review hipotética do HyDE, densa com a query
+reformulada e BM25 com keywords + query. As três listas saem fundidas por
+Reciprocal Rank Fusion (RRF): score = soma de 1/(k + rank), k=60. Não precisa
+normalizar score de fonte nenhuma, o que economiza dor de cabeça.
 
-Por quê híbrida: reviews têm gírias, erros de digitação e expressões literais
-("não chegou", "veio quebrado") que o BM25 captura bem, enquanto a busca densa
-captura paráfrases. RRF combina rankings sem precisar normalizar scores
-(score(d) = Σ 1/(k + rank_r(d)), k=60).
+Por que híbrida? As reviews têm muita gíria, erro de digitação e frase
+literal ("não chegou", "veio quebrado") que o BM25 pega fácil, enquanto a
+busca densa cobre as paráfrases. Só uma das duas deixaria passar coisa.
 """
 
 from __future__ import annotations
@@ -24,8 +23,9 @@ from rag.config import get_settings
 from rag.filters import to_mask
 from rag.schemas import Candidate, Filters, QueryAnalysis
 
-# Stopwords mínimas em PT — SEM negações ("não", "nunca", "nem"), que são
-# decisivas em reclamações (NLP Aula 2: remover stopwords apaga o "não").
+# stopwords em PT, mas SEM remover negações ("não", "nunca", "nem"):
+# em reclamação o "não" carrega o sentido inteiro. Detalhe da aula 2 de NLP
+# que fez diferença aqui.
 STOPWORDS = {
     "a", "o", "as", "os", "um", "uma", "uns", "umas", "de", "do", "da", "dos", "das", "em", "no", "na",
     "nos", "nas", "por", "para", "pra", "pro", "com", "e", "ou", "que", "se", "me", "meu", "minha",

@@ -73,7 +73,7 @@ O pipeline RAG é composto em **LCEL** (LangChain Expression Language), com `Run
 | `eval/` | Golden set (28 perguntas rotuladas), avaliação e calibração |
 | `tests/` | Testes unitários e end-to-end com dublês (sem Ollama/S3) |
 | `scripts/` | `setup.ps1` / `setup.sh`: ambiente completo, dados e vector store |
-| `docs/exemplos_qa.md` | Exemplos de perguntas e respostas com saídas reais (Etapa 9: avaliação e hardening) |
+| `docs/exemplos_qa.md` | Exemplos de perguntas e respostas com saídas reais, incluindo as recusas |
 | `docs/roteiro_video.md` | Roteiro do vídeo de apresentação (7 minutos) |
 
 | Módulo RAG | Etapa |

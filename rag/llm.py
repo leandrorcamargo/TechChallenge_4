@@ -1,9 +1,11 @@
-"""Fábrica do modelo de linguagem (Ollama local).
+"""Fábrica do LLM (Ollama local).
 
-- `reasoning=False`: desliga o modo thinking do qwen3.8 (ligado por padrão), que
-  aumentaria muito a latência e poluiria a saída estruturada.
-- temperatura baixa: respostas mais determinísticas e aderentes ao contexto.
-- Se o servidor Ollama portátil do projeto não estiver no ar, ele é iniciado.
+Desligamos o modo thinking do qwen3.8 (reasoning=False): ligado, ele deixa a
+resposta bem mais lenta e suja a saída estruturada. Temperatura baixa porque
+queremos o modelo colado no contexto, sem criatividade.
+
+Se o Ollama portátil do projeto não estiver rodando, a primeira chamada
+sobe ele sozinha.
 """
 
 from __future__ import annotations
