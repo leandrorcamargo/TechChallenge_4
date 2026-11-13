@@ -73,6 +73,7 @@ O pipeline RAG é composto em **LCEL** (LangChain Expression Language), com `Run
 | `eval/` | Golden set (28 perguntas rotuladas), avaliação e calibração |
 | `tests/` | Testes unitários e end-to-end com dublês (sem Ollama/S3) |
 | `scripts/` | `setup.ps1` / `setup.sh`: ambiente completo, dados e vector store |
+| `docs/exemplos_qa.md` | Exemplos de perguntas e respostas com saídas reais (Etapa 9: avaliação e hardening) |
 | `docs/roteiro_video.md` | Roteiro do vídeo de apresentação (7 minutos) |
 
 | Módulo RAG | Etapa |
@@ -325,7 +326,7 @@ Em todos os casos a recusa é explícita. No caso de evidência insuficiente, a 
 
 ## Avaliação
 
-O golden set ([eval/golden_questions.yaml](eval/golden_questions.yaml)) tem 28 perguntas em cinco grupos: as do enunciado, com metadados, fora do escopo, sem evidência e prompt injection. O relatório completo fica em `eval/results/report.md`.
+O golden set ([eval/golden_questions.yaml](eval/golden_questions.yaml)) tem 28 perguntas em cinco grupos: as do enunciado, com metadados, fora do escopo, sem evidência e prompt injection. O relatório completo fica em `eval/results/report.md`; os exemplos documentados com as saídas reais estão em [docs/exemplos_qa.md](docs/exemplos_qa.md).
 
 Execução de referência:
 - `qwen3.8` numa RTX 4060 8 GB + 64 GB RAM;
