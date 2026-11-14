@@ -14,14 +14,21 @@ import unicodedata
 
 from rag.schemas import VocAnswer
 
+# Só o IMPERATIVO dirigido ao sistema ("ignore", "esqueça", "desconsidere"...).
+# O indicativo ("os clientes ignoram as instruções de montagem", "o produto
+# esquece as configurações") é pergunta legítima sobre avaliações e não casa.
 _INJECTION_PATTERNS = [
-    r"ignor\w*\s+(as|todas|suas|quaisquer|the|all|previous|any)?\s*(instruc|regra|orienta|instruction)",
-    r"esque[cç]\w*\s+(as|todas|suas|tudo)",
-    r"(desconsider|desobedec)\w*\s+(as|suas|todas)",
-    r"(voce|você)\s+agora\s+(e|é)",
+    r"\b(ignore|ignorem|ignora|desconsidere|desconsiderem|desobede[cç]a|esque[cç]a|esque[cç]am)\s+"
+    r"(todas?\s+|tudo\s+|suas?\s+|seus?\s+|as\s+|os\s+|quaisquer\s+)*"
+    r"(instru|regra|orienta|restri|diretriz|comando|prompt|anterior|acima|tudo)",
+    r"\b(ignore|disregard|forget)\s+(all\s+|any\s+|the\s+|your\s+|previous\s+|prior\s+|above\s+)+"
+    r"(instruction|rule|prompt|guideline|context)",
+    r"\b(voce|você)\s+agora\s+(e|é)\b",
+    r"\byou\s+are\s+now\b",
+    r"\b(finja|finjam|aja|atue|comporte-se|responda)\s+(que\s+(voce|você)\s+(e|é|esta|está)\s+|como\s+(se\s+fosse\s+)?)",
     r"\b(system\s*prompt|prompt\s+do\s+sistema|jailbreak|developer\s+mode|modo\s+desenvolvedor)\b",
-    r"revel\w*\s+(seu|suas|o)\s+(prompt|instruc)",
-    r"act\s+as|pretend\s+(to\s+be|you)",
+    r"\brevel\w*\s+((o|a|as|os|seu|sua|suas|seus)\s+)+(prompt|instruc)",
+    r"\bact\s+as\b|\bpretend\s+(to\s+be|you)\b",
 ]
 _INJECTION_RE = re.compile("|".join(_INJECTION_PATTERNS), re.IGNORECASE)
 _REF_RE = re.compile(r"R\d+", re.IGNORECASE)

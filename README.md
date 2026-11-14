@@ -8,6 +8,22 @@ Solução de **Voice of Customer (VoC)** sobre o dataset público **Olist Brazil
 - **Recuperação:** busca híbrida (densa + BM25) com re-ranking.
 - **Demonstração:** interface Streamlit com inspetor de cada etapa do pipeline.
 
+## Problema de negócio
+
+Uma empresa de e-commerce acumula milhares de avaliações escritas. A nota média mostra *se* o cliente está satisfeito. O *porquê* está no texto, e ler milhares de comentários à mão não escala. Na base Olist há 42.370 avaliações com texto entre 2016 e 2018.
+
+A solução transforma esses comentários numa base de conhecimento consultável em linguagem natural. Um gestor pergunta, por exemplo:
+- "Quais são os principais problemas relatados pelos clientes?"
+- "O que os clientes relatam sobre a entrega?"
+- "O que mais elogiam?"
+- "Quais avaliações sustentam que o prazo de entrega é um problema recorrente?"
+
+Ele recebe uma síntese com insights. **Cada insight aponta as avaliações reais que o sustentam**, para que o gestor possa conferir a fonte em vez de confiar no modelo.
+
+Duas exigências guiam as decisões técnicas:
+- **Fundamentação:** a resposta só pode afirmar o que está nas avaliações recuperadas, e cada afirmação precisa ser rastreável até um `review_id`.
+- **Saber dizer "não sei":** quando a pergunta está fora do escopo ou a base não tem evidência suficiente, o sistema recusa explicitamente em vez de produzir uma resposta convincente sem suporte.
+
 ## Equipe
 
 | Integrante | Contato |
@@ -19,16 +35,18 @@ Solução de **Voice of Customer (VoC)** sobre o dataset público **Olist Brazil
 
 ## Sumário
 
-1. [Arquitetura](#arquitetura)
-2. [Estrutura do projeto](#estrutura-do-projeto)
-3. [Como executar](#como-executar)
-4. [Preparação da base de conhecimento](#preparação-da-base-de-conhecimento)
-5. [Embeddings e Vector Store](#embeddings-e-vector-store)
-6. [Estratégia do pipeline RAG e decisões técnicas](#estratégia-do-pipeline-rag-e-decisões-técnicas)
-7. [Tecnologias](#tecnologias)
-8. [Avaliação](#avaliação)
-9. [Exemplos de perguntas e respostas](#exemplos-de-perguntas-e-respostas)
-10. [Limitações conhecidas](#limitações-conhecidas)
+1. [Problema de negócio](#problema-de-negócio)
+2. [Arquitetura](#arquitetura)
+3. [Estrutura do projeto](#estrutura-do-projeto)
+4. [Como executar](#como-executar)
+5. [Preparação da base de conhecimento](#preparação-da-base-de-conhecimento)
+6. [Embeddings e Vector Store](#embeddings-e-vector-store)
+7. [Estratégia do pipeline RAG e decisões técnicas](#estratégia-do-pipeline-rag-e-decisões-técnicas)
+   - [Uma pergunta atravessando o pipeline](#uma-pergunta-atravessando-o-pipeline)
+8. [Tecnologias](#tecnologias)
+9. [Avaliação](#avaliação)
+10. [Exemplos de perguntas e respostas](#exemplos-de-perguntas-e-respostas)
+11. [Limitações conhecidas](#limitações-conhecidas)
 
 ## Arquitetura
 
@@ -70,11 +88,11 @@ O pipeline RAG é composto em **LCEL** (LangChain Expression Language), com `Run
 | `rag/` | Pipeline RAG (ver tabela abaixo) |
 | `rag/tools/` | Ambiente: Ollama portátil, bootstrap e diagnóstico |
 | `app/streamlit_app.py` | Interface: chat, painel de evidências, inspetor do pipeline e filtros |
-| `eval/` | Golden set (28 perguntas rotuladas), avaliação e calibração |
+| `eval/` | Golden set (33 perguntas rotuladas), avaliação e calibração |
 | `tests/` | Testes unitários e end-to-end com dublês (sem Ollama/S3) |
 | `scripts/` | `setup.ps1` / `setup.sh`: ambiente completo, dados e vector store |
 | `docs/exemplos_qa.md` | Exemplos de perguntas e respostas com saídas reais, incluindo as recusas |
-| `docs/roteiro_video.md` | Roteiro do vídeo de apresentação (7 minutos) |
+| `docs/qa_requisitos.md` | QA: cada requisito do desafio mapeado para onde está implementado, mais os achados da revisão |
 
 | Módulo RAG | Etapa |
 | --- | --- |
@@ -89,6 +107,19 @@ O pipeline RAG é composto em **LCEL** (LangChain Expression Language), com `Run
 | [rag/pipeline.py](rag/pipeline.py) | Composição LCEL + trace |
 
 ## Como executar
+
+### Pré-requisitos
+
+| Recurso | Necessário | Observação |
+|---|---|---|
+| Sistema | Windows 10+, Linux ou macOS | Python **não** precisa estar instalado: o setup baixa um Python 3.11 isolado |
+| Software | Git e acesso à internet | O setup baixa tudo dentro do projeto. Nada é instalado no sistema |
+| Disco | **~25 GB livres** | Medido: modelo `qwen3.8` 17 GB, Ollama 2,2 GB, modelos Hugging Face 1,4 GB, `.venv` 1,4 GB, vector store 0,2 GB |
+| Memória | O `qwen3.8` (27B, q4, ~17 GB) mais o contexto precisam caber em RAM + VRAM somadas. Estimativa: ≥ 24 GB | Configuração testada: RTX 4060 8 GB + 64 GB RAM, com o modelo dividido entre GPU e CPU. Sem GPU funciona, mais lento |
+| Tempo do setup | Download de ~20 GB + ~5 min de indexação em CPU | Os embeddings das 42.370 reviews são gerados localmente |
+| Tempo por pergunta | ~1,5 a 2 min no hardware de referência | ~10 s quando a pergunta é recusada por escopo; instantâneo quando bloqueada pelo guardrail |
+
+**Sem hardware para o LLM?** `pytest` roda em menos de 1 s sem Ollama, sem modelo e sem vector store (`setup -SkipModel`). `python retrieval/search.py "..."` testa a busca semântica sem LLM. Também é possível apontar `OLLAMA_MODEL` para um modelo menor no `.env`, mas as métricas da [Avaliação](#avaliação) valem para o `qwen3.8`.
 
 ### 1. Ambiente (um comando, isolado como um venv)
 
@@ -127,9 +158,8 @@ Opções do setup:
 
 **Alternativa com Docker:** `docker compose up -d` sobe Ollama e `qwen3.8` em container com GPU NVIDIA. Depois rode o setup com `-SkipOllama`.
 
-**Hardware:** o `qwen3.8` (27B, q4) ocupa ~18 GB.
+**Hardware:** ver [Pré-requisitos](#pré-requisitos).
 - Numa RTX 4060 (8 GB) + 64 GB de RAM, o modelo roda dividido entre GPU e CPU.
-- Em máquinas sem GPU funciona, mas fica mais lento.
 - Para outro modelo, defina `OLLAMA_MODEL` no `.env`. Para usar um modelo menor só na análise da pergunta, defina `OLLAMA_MODEL_ANALYZER`.
 
 ### 2. Configuração (opcional)
@@ -175,7 +205,7 @@ python retrieval/build_vector_store.py      # ~5 min em CPU, cria retrieval/vect
 ### 4. Testes e avaliação
 
 ```powershell
-pytest                                       # unitários + end-to-end com dublês (sem Ollama/S3)
+pytest                                       # 52 testes: unitários + end-to-end com dublês (sem Ollama/S3), < 1 s
 python eval/run_eval.py --calibrate          # calibra o limiar de relevância
 python eval/run_eval.py --judge              # avaliação completa → eval/results/report.md
 pytest data_preparing/test_gold_contract.py  # contrato da camada Gold (lê do S3, exige credenciais)
@@ -311,6 +341,89 @@ Tratamento de perguntas sem evidência suficiente (requisito 4). Há quatro barr
 
 Em todos os casos a recusa é explícita. No caso de evidência insuficiente, a interface ainda mostra as avaliações mais próximas encontradas.
 
+### Uma pergunta atravessando o pipeline
+
+Este é o trace real de uma execução (`python -m rag.pipeline --json "..."`), resumido. Na interface, os mesmos dados aparecem no **Inspetor do pipeline**.
+
+**Pergunta:** *"Quais reclamações relacionadas à entrega aparecem com maior frequência?"*
+
+**0. Guardrail de entrada** (0 ms): nenhum padrão de injection. Segue.
+
+**1. Processamento da pergunta** (40 s, 1 chamada ao LLM). O LLM devolve um `QueryAnalysis` estruturado:
+
+| Campo | Valor gerado |
+|---|---|
+| `in_scope` / `intent` | `true` / `problemas` |
+| `search_query` (reescrita) | "Reclamações frequentes sobre problemas na entrega, atrasos e não recebimento do pedido" |
+| `hypothetical_review` (HyDE) | "O prazo de entrega foi totalmente ignorado, o pacote demorou o dobro do previsto e a transportadora não atualiza o rastreio." |
+| `keywords` (para o BM25) | entrega, atraso, atrasada, demorou, não chegou, não recebi, prazo, transportadora, rastreio, extraviado… |
+| `filters` | `sentiment=negative`, validado contra o vocabulário da base |
+
+**2. Recuperação híbrida.** Com o filtro, 10.861 das 42.370 reviews são elegíveis.
+- Três buscas retornam 40 candidatos cada: densa com o HyDE, densa com a `search_query` e BM25 com keywords + query.
+- O RRF funde as três listas em 50 candidatos.
+- Os primeiros colocados foram encontrados por mais de uma busca. Por exemplo, *"entrega atrasada. o prazo terminou e nao recebi meu produto"* veio de `bm25+densa_hyde+densa_query`.
+
+**3. Seleção.**
+- O cross-encoder reavalia os 50 pares (pergunta, review).
+- 35 ficam acima do limiar (-6,2) e 30 sobram após remover textos duplicados.
+- As 12 primeiras vão para o contexto.
+- Como 12 ≥ `MIN_EVIDENCE` (3), o pipeline segue para a geração.
+
+**4. Construção do contexto** (2 ms). As 12 reviews entram em XML com IDs curtos, e o mapa `R# → review_id` fica no trace:
+
+```xml
+<review id="R1" nota="1" categoria="telefonia" data="2018-08-02" uf="SP" entrega_atrasada="sim">Não recomendo.
+Atraso na entrega, ainda não recebi e não sou informado o por que do atraso.. Se não receber logo vou cancelar o pedido</review>
+<review id="R2" nota="1" categoria="utilidades_domesticas" data="2018-07-27" uf="RS" entrega_atrasada="sim">ATRASO ENORME
+NA ENTREGA. A entrega está muuuuito atrasada e não recebi nenhum retorno a respeito.</review>
+...
+```
+
+Junto vai o bloco de estatísticas, calculado em pandas e não pelo LLM. É ele que permite falar de frequência sem inventar números:
+
+```
+- Avaliações que atendem aos filtros: 10.861
+- Avaliações relevantes para a pergunta (acima do limiar...): 35; enviadas neste contexto: 12
+- Entre as avaliações relevantes:
+  - notas: 1★=29, 2★=6, 3★=0, 4★=0, 5★=0
+  - pedidos entregues com atraso: 22 (63%)
+  - categorias mais frequentes: beleza_saude (6), esporte_lazer (4), relogios_presentes (3), ...
+```
+
+**5. Geração** (70 s). O `qwen3.8` devolve um `VocAnswer` com `nivel_confianca=Alto` e `evidencia_suficiente=true`:
+
+> As reclamações relacionadas à entrega concentram-se em dois pontos: a não realização da entrega dentro do prazo e a ausência de comunicação proativa da loja sobre o status do pedido. […]
+> - A principal reclamação é o atraso na entrega ou a não entrega do produto dentro do prazo. Vários clientes relatam que ainda não receberam o pedido. `R1–R12`
+> - Há queixa significativa sobre falta de comunicação: clientes relatam não ter recebido retorno ou esclarecimento sobre a causa do atraso. `R1 R2 R3 R5`
+> - A combinação de atraso e falta de informação leva clientes a expressar intenção de cancelar o pedido ou a não recomendar a loja […]. `R1 R7 R8`
+
+**6. Validação das citações** (0 ms):
+- 3 insights gerados, 3 válidos;
+- nenhuma citação a um ID inexistente;
+- nenhum insight descartado.
+
+Cada `R#` vira um link para a review original (`review_id`, nota, categoria, data, UF, score do reranker).
+
+**O que esse exemplo também mostra (honestamente):**
+- O último insight termina com "indicando um risco de churn e dano à reputação". É uma inferência que a regra 3a do prompt pede para evitar. A validação de citações não pega isso, porque as citações são válidas: ela verifica *quais* reviews sustentam o insight, não *quanto* o texto extrapola. É o tipo de afirmação que o LLM-as-judge reprova (ver [Avaliação](#avaliação)).
+- A síntese diz "63% … relata que o pedido foi entregue com atraso ou ainda não foi entregue". A estatística fornecida conta só "pedidos entregues com atraso". O "ou ainda não foi entregue" é acréscimo do modelo (ver [Limitações](#limitações-conhecidas)).
+- Algumas reviews dizem "não recebi" e têm `entrega_atrasada="não"`.
+  - R5, R6, R8 e R11 são pedidos com status `shipped`, sem data de entrega. O atraso só é calculado para pedidos entregues, mas no XML o atributo sai "não" quando o correto seria "desconhecido".
+  - R4 foi entregue 5 dias antes do prazo estimado. O cliente avaliou antes de receber.
+
+### Escolhas gerais
+
+| Decisão | Justificativa |
+|---|---|
+| **LLM local (Ollama + `qwen3.8`)** em vez de API paga | Sem chave nem custo por chamada. As avaliações não saem da máquina. Qualquer pessoa reproduz o resultado com o mesmo modelo e versão. O Ollama aceita JSON schema, o que viabiliza a saída estruturada (`QueryAnalysis`, `VocAnswer`) |
+| **Thinking desligado, temperatura 0.1** (0.0 na análise) | O modo de raciocínio deixava a resposta mais lenta e poluía a saída estruturada. A temperatura baixa mantém o modelo preso ao contexto |
+| **LCEL** (`RunnableLambda` + `RunnableBranch`) | Cada etapa é uma peça isolada e testável. As recusas são ramos explícitos da chain, não `if` espalhados. Todas as dependências (LLM, busca, reranker) entram por parâmetro, o que permite os testes com dublês |
+| **Trace por etapa** | Torna o pipeline demonstrável: a interface mostra a pergunta transformada, os candidatos de cada busca, o ranking, o prompt exato e o tempo de cada etapa |
+| **Streamlit** | Interface com chat, evidências e inspetor do pipeline sem escrever front-end |
+| **uv + `uv.lock` + ferramentas em `.tools/`** | Ambiente idêntico em qualquer máquina, sem instalar nada no sistema |
+| **Gold gerada localmente a partir do Bronze versionado** | Reprodução sem credenciais AWS. O código de `data_preparing/` é executado como está, sem cópia |
+
 ## Tecnologias
 
 | Camada | Tecnologia |
@@ -326,10 +439,12 @@ Em todos os casos a recusa é explícita. No caso de evidência insuficiente, a 
 
 ## Avaliação
 
-O golden set ([eval/golden_questions.yaml](eval/golden_questions.yaml)) tem 28 perguntas em cinco grupos: as do enunciado, com metadados, fora do escopo, sem evidência e prompt injection. O relatório completo fica em `eval/results/report.md`; os exemplos documentados com as saídas reais estão em [docs/exemplos_qa.md](docs/exemplos_qa.md).
+O golden set ([eval/golden_questions.yaml](eval/golden_questions.yaml)) tem 33 perguntas em seis grupos: as do enunciado, com metadados, fora do escopo, sem evidência, prompt injection e prompt injection que escapa do regex (`injection_llm`). O relatório completo fica em `eval/results/report.md`; os exemplos documentados com as saídas reais estão em [docs/exemplos_qa.md](docs/exemplos_qa.md).
+
+As métricas abaixo são da rodada de referência com as 28 primeiras perguntas. As 5 de `injection_llm` foram acrescentadas na revisão de QA e rodadas à parte (`python eval/run_eval.py --only inj-04,inj-05,inj-06,inj-07,inj-08`): **5/5 recusadas** pela classificação de escopo do LLM, a ~9 s cada. Ver [docs/qa_requisitos.md](docs/qa_requisitos.md#achados).
 
 Execução de referência:
-- `qwen3.8` numa RTX 4060 8 GB + 64 GB RAM;
+- `qwen3.8`;
 - vector store de `retrieval/` (`multilingual-e5-small`);
 - `RERANK_THRESHOLD=-6.2`, `TOP_N=12`, prompt v2.
 
@@ -354,6 +469,9 @@ Abstenção e extração de filtros ficaram em 100%.
 - **Fidelidade:** o juiz é o próprio `qwen3.8`, instruído a reprovar qualquer inferência ou quantificador não literal. Ele reprova, por exemplo, "a maioria das reclamações foca no prazo" mesmo com 9 reviews citadas sobre prazo. Por isso o número é um limite inferior. A regra 3a do prompt (v2) existe para reduzir generalizações como "falha sistêmica".
 - **Calibração do limiar:** o cross-encoder separa mal "tema genérico" de "sem evidência", assim como a similaridade do e5 (ver [Ponto de atenção](#ponto-de-atenção-perguntas-sem-evidência)). Por isso o limiar (-6.2, calibrado com `--calibrate`) só corta candidatos claramente irrelevantes. A recalibração com o e5 sugeriu -5,72, mas esse valor fica a 0,004 da pergunta respondível mais difícil; -6,2 dá a mesma separação (94%) com margem. A recusa por falta de evidência vem sobretudo da classificação de escopo e da auto-declaração do LLM somada à validação de citações. É uma defesa em camadas: nenhuma camada sozinha precisa ser perfeita.
 - **Latência:** é dominada pelo LLM de 27B rodando ~70% em CPU. Com uma GPU que comporte o modelo inteiro, ou com `OLLAMA_MODEL_ANALYZER` apontando para um modelo menor na análise, o tempo cai bastante.
+- **Grupo "sem evidência":** 3 das 4 perguntas foram recusadas já na classificação de escopo, e a quarta pela auto-declaração do LLM. A barreira de limiar + `MIN_EVIDENCE` é coberta pelos testes unitários.
+- **Variação entre execuções:** os números vêm de uma rodada. O LLM não é determinístico, então uma reexecução pode variar alguns pontos, principalmente na fidelidade.
+
 
 ## Exemplos de perguntas e respostas
 
@@ -387,6 +505,6 @@ Saídas reais da avaliação, resumidas. Na interface, cada `R#` aparece ligado 
 
 ## Limitações conhecidas
 
-- **Latência:** ~1,5–2 min por resposta no hardware de referência, por causa do LLM de 27B parcialmente em CPU.
 - **Precisão por pergunta:** a precisão do contexto é menor (75%) em perguntas amplas ou genéricas ("o que os clientes mais elogiam", "como foram as avaliações de beleza em 2017"), em que muitas reviews curtas e genéricas competem.
 - **Categoria de pedidos com várias categorias:** no vector store, o filtro de categoria compara a string inteira de categorias do pedido. Pedidos com mais de uma categoria (~1%) só entram pela busca BM25.
+- **Síntese sem validação de citações:** a validação de citações atua sobre os insights. O texto-resumo (`resposta`) segue as mesmas regras de grounding do prompt, mas não é verificado depois da geração. Em perguntas sobre frequência, a síntese pode esticar uma estatística: ver o exemplo em [Uma pergunta atravessando o pipeline](#uma-pergunta-atravessando-o-pipeline).
